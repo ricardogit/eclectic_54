@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Settings Dashboard{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<!-- Load Dash CSS assets -->
+<link rel="stylesheet" href="{{ url_for('settings.settings_dashboard') }}/assets/dash_bootstrap.css">
+<style>
+    .settings-container iframe {
+        width: 100%;
+        height: 800px;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Settings</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav flex-column nav-pills">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('settings.settings_page') }}">
+                                <i class="fa fa-user"></i> Profile
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('settings.settings_dashboard') }}">
+                                <i class="fa fa-sliders"></i> Advanced Settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('literature.search') }}">
+                                <i class="fa fa-search"></i> Literature Search
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.profile') }}">
+                                <i class="fa fa-arrow-left"></i> Back to Profile
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Advanced Settings Dashboard</h4>
+                </div>
+                <div class="card-body p-0">
+                    <!-- This div will be populated by Dash -->
+                    <div class="settings-container">
+                        <iframe
+                            src="{{ url_for('settings.settings_dashboard') }}/"
+                            frameborder="0"
+                            title="Settings Dashboard"
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Load Dash JS assets -->
+<script src="{{ url_for('settings.settings_dashboard') }}/assets/dash_renderer.js"></script>
+{% endblock %}

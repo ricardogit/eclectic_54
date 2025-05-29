@@ -1,0 +1,116 @@
+/**
+ * Settings module custom styles
+ */
+
+/* Settings sidebar styles */
+.settings-sidebar .nav-link {
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    color: #495057;
+    border-left: 3px solid transparent;
+}
+
+.settings-sidebar .nav-link:hover {
+    background-color: #f8f9fa;
+    border-left-color: #ccc;
+}
+
+.settings-sidebar .nav-link.active {
+    background-color: #e9ecef;
+    color: #007bff;
+    border-left-color: #007bff;
+}
+
+.settings-sidebar .nav-link i {
+    width: 20px;
+    text-align: center;
+    margin-right: 8px;
+}
+
+/* Card styles */
+.settings-card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.settings-card .card-header {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 1rem;
+}
+
+.settings-card .card-body {
+    padding: 1.25rem;
+}
+
+/* API Key table styles */
+.api-key-table {
+    font-size: 0.9rem;
+}
+
+.api-key-table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.api-key-table .masked-key {
+    font-family: monospace;
+    letter-spacing: 1px;
+}
+
+/* Theme support */
+body.theme-dark {
+    background-color: #343a40;
+    color: #f8f9fa;
+}
+
+body.theme-dark .card {
+    background-color: #454d55;
+    border-color: #495057;
+}
+
+body.theme-dark .card-header {
+    background-color: #3a4047;
+    border-color: #495057;
+    color: #f8f9fa;
+}
+
+body.theme-dark .form-control,
+body.theme-dark .form-select {
+    background-color: #495057;
+    border-color: #6c757d;
+    color: #f8f9fa;
+}
+
+body.theme-dark .form-control:focus,
+body.theme-dark .form-select:focus {
+    background-color: #545b62;
+    color: #fff;
+}
+
+body.theme-dark .table {
+    color: #f8f9fa;
+}
+
+body.theme-dark .table th {
+    background-color: #3a4047;
+}
+
+body.theme-dark .table td {
+    border-color: #495057;
+}
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+    .settings-container iframe {
+        height: 1200px; /* Increase height on smaller screens */
+    }
+
+    .settings-sidebar {
+        margin-bottom: 1.5rem;
+    }
+
+    .settings-card .card-header h4 {
+        font-size: 1.25rem;
+    }
+}

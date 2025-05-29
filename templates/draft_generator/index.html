@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Paper Draft Generator</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { padding-top: 20px; }
+        .tab-content { padding-top: 20px; }
+        .model-feature { margin-bottom: 5px; }
+        .paper-item { border: 1px solid #dee2e6; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .paper-checkbox { text-align: center; }
+        #draft-output {
+            min-height: 400px;
+            max-height: 70vh;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1>Academic Paper Draft Generator</h1>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="javascript:window.close()" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Editor
+                </a>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs" id="generatorTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="step1-tab" data-bs-toggle="tab" data-bs-target="#step1" type="button" role="tab">
+                    Step 1: Select AI Provider & Model
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="step2-tab" data-bs-toggle="tab" data-bs-target="#step2" type="button" role="tab">
+                    Step 2: Set Paper Parameters
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="step3-tab" data-bs-toggle="tab" data-bs-target="#step3" type="button" role="tab">
+                    Step 3: View Generated Draft
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="generatorTabContent">
+            <!-- Step 1: AI Provider & Model Selection -->
+            <div class="tab-pane fade show active" id="step1" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">AI Provider and Model Selection</h4>
+
+                        <div id="providerAlert" class="alert alert-info d-none">
+                            Loading providers...
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="aiProvider" class="form-label">AI Provider</label>
+                                <select class="form-select" id="aiProvider">
+                                    <option value="" selected disabled>Select a provider</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="aiModel" class="form-label">Model</label>
+                                <select class="form-select" id="aiModel">
+                                    <option value="" selected disabled>Select a model</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="modelFeatures" class="card d-none">
+                            <div class="card-body">
+                                <h5 class="card-title">Model Capabilities</h5>
+                                <p id="modelDescription"></p>
+                                <ul id="modelCapabilities" class="list-group list-group-flush"></ul>
+                            </div>
+                        </div>
+
+                        <div class="text-end mt-3">
+                            <button id="nextToStep2" class="btn btn-primary">Next: Set Paper Parameters</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Paper Parameters -->
+            <div class="tab-pane fade" id="step2" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Paper Parameters</h4>
+
+                        <div class="mb-3">
+                            <label for="researchTopic" class="form-label">Research Topic</label>
+                            <textarea class="form-control" id="researchTopic" rows="2" placeholder="Enter your research topic and key concepts"></textarea>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="journalStyle" class="form-label">Journal Style</label>
+                                <select class="form-select" id="journalStyle">
+                                    <option value="general_scientific">General Scientific Journal</option>
+                                    <option value="nature">Nature</option>
+                                    <option value="ieee">IEEE Transactions</option>
+                                    <option value="acm">ACM Computing</option>
+                                    <option value="plos">PLOS</option>
+                                    <option value="humanities">Humanities Journal</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 d-flex align-items-end">
+                                <button id="fetchPapersBtn" class="btn btn-secondary w-100">Fetch Related Papers</button>
+                            </div>
+                        </div>
+
+                        <div id="papersContainer" class="d-none mb-3">
+                            <h5 class="mb-3">Related Papers</h5>
+                            <div class="mb-2">
+                                <button id="selectAllBtn" class="btn btn-sm btn-link">Select All</button>
+                                <button id="deselectAllBtn" class="btn btn-sm btn-link">Deselect All</button>
+                            </div>
+                            <div id="papersList"></div>
+                        </div>
+
+                        <div class="text-end mt-3">
+                            <button id="backToStep1" class="btn btn-outline-secondary me-2">Back</button>
+                            <button id="generateBtn" class="btn btn-primary">Generate Paper Draft</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Generated Draft -->
+            <div class="tab-pane fade" id="step3" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Generated Draft</h4>
+
+                        <div id="generatingSpinner" class="text-center py-5 d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3">Generating your academic paper draft...</p>
+                        </div>
+
+                        <pre id="draft-output" class="border rounded bg-light"></pre>
+
+                        <div class="text-end mt-3">
+                            <button id="backToStep2" class="btn btn-outline-secondary me-2">Back</button>
+                            <button id="downloadBtn" class="btn btn-outline-success me-2" disabled>
+                                <i class="fas fa-download me-1"></i> Download as Markdown
+                            </button>
+                            <button id="sendToEditorBtn" class="btn btn-primary" disabled>
+                                <i class="fas fa-paper-plane me-1"></i> Send to Editor
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Variables to store state
+            let selectedPapers = [];
+            let generatedDraft = '';
+
+            // Initialize tabs
+            const tabs = document.querySelectorAll('button[data-bs-toggle="tab"]');
+            const tabContents = document.querySelectorAll('.tab-pane');
+
+            // Navigation buttons
+            document.getElementById('nextToStep2').addEventListener('click', function() {
+                const aiProvider = document.getElementById('aiProvider').value;
+                const aiModel = document.getElementById('aiModel').value;
+
+                if (!aiProvider || !aiModel) {
+                    alert('Please select both a provider and a model');
+                    return;
+                }
+
+                // Activate step 2 tab
+                document.getElementById('step2-tab').click();
+            });
+
+            document.getElementById('backToStep1').addEventListener('click', function() {
+                document.getElementById('step1-tab').click();
+            });
+
+            document.getElementById('backToStep2').addEventListener('click', function() {
+                document.getElementById('step2-tab').click();
+            });
+
+            // Fetch AI providers
+            function fetchProviders() {
+                const providerAlert = document.getElementById('providerAlert');
+                const aiProviderSelect = document.getElementById('aiProvider');
+
+                providerAlert.classList.remove('d-none');
+
+                fetch('/draft-generator/api/providers')
+                    .then(response => response.json())
+                    .then(data => {
+                        providerAlert.classList.add('d-none');
+
+                        if (data.providers && data.providers.length > 0) {
+                            data.providers.forEach(provider => {
+                                const option = document.createElement('option');
+                                option.value = provider.name;
+                                option.textContent = provider.name.charAt(0).toUpperCase() + provider.name.slice(1);
+                                aiProviderSelect.appendChild(option);
+                            });
+                        } else {
+                            providerAlert.textContent = 'No AI providers configured. Please check your settings.';
+                            providerAlert.classList.remove('alert-info');
+                            providerAlert.classList.add('alert-warning');
+                            providerAlert.classList.remove('d-none');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching providers:', error);
+                        providerAlert.textContent = 'Error loading providers. Please try again.';
+                        providerAlert.classList.remove('alert-info');
+                        providerAlert.classList.add('alert-danger');
+                        providerAlert.classList.remove('d-none');
+                    });
+            }
+
+            // Update models when provider changes
+            document.getElementById('aiProvider').addEventListener('change', function() {
+                const provider = this.value;
+                const modelSelect = document.getElementById('aiModel');
+
+                // Clear existing options
+                modelSelect.innerHTML = '<option value="" selected disabled>Select a model</option>';
+
+                // Hide model features
+                document.getElementById('modelFeatures').classList.add('d-none');
+
+                if (!provider) return;
+
+                fetch(`/draft-generator/api/models?provider=${provider}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.models && data.models.length > 0) {
+                            data.models.forEach(model => {
+                                const option = document.createElement('option');
+                                option.value = model.name;
+                                option.textContent = model.label || model.name;
+                                option.dataset.description = model.description;
+                                option.dataset.capabilities = JSON.stringify(model.capabilities);
+                                modelSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching models:', error);
+                    });
+            });
+
+            // Update model features when model changes
+            document.getElementById('aiModel').addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const featuresCard = document.getElementById('modelFeatures');
+
+                if (!selectedOption || !selectedOption.value) {
+                    featuresCard.classList.add('d-none');
+                    return;
+                }
+
+                const description = selectedOption.dataset.description;
+                const capabilities = JSON.parse(selectedOption.dataset.capabilities || '[]');
+
+                document.getElementById('modelDescription').textContent = description;
+
+                const capabilitiesList = document.getElementById('modelCapabilities');
+                capabilitiesList.innerHTML = '';
+
+                capabilities.forEach(capability => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.textContent = capability;
+                    capabilitiesList.appendChild(li);
+                });
+
+                featuresCard.classList.remove('d-none');
+            });
+
+            // Fetch related papers
+            document.getElementById('fetchPapersBtn').addEventListener('click', function() {
+                const topic = document.getElementById('researchTopic').value.trim();
+                const papersContainer = document.getElementById('papersContainer');
+                const papersList = document.getElementById('papersList');
+
+                if (!topic) {
+                    alert('Please enter a research topic');
+                    return;
+                }
+
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Fetching...';
+                papersList.innerHTML = '<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>';
+                papersContainer.classList.remove('d-none');
+
+                fetch(`/draft-generator/api/papers?topic=${encodeURIComponent(topic)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        this.disabled = false;
+                        this.textContent = 'Fetch Related Papers';
+
+                        if (data.error) {
+                            papersList.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                            return;
+                        }
+
+                        if (!data.papers || data.papers.length === 0) {
+                            papersList.innerHTML = '<div class="alert alert-warning">No papers found for this topic. Try a different search term.</div>';
+                            return;
+                        }
+
+                        // Store papers and update UI
+                        selectedPapers = data.papers;
+
+                        papersList.innerHTML = '';
+                        data.papers.forEach((paper, index) => {
+                            const paperDiv = document.createElement('div');
+                            paperDiv.className = 'row paper-item align-items-center';
+                            paperDiv.innerHTML = `
+                                <div class="col-10">
+                                    <strong>${paper.title}</strong><br>
+                                    <small>Authors: ${paper.authors}</small><br>
+                                    <small>Published: ${paper.published}</small>
+                                </div>
+                                <div class="col-2 paper-checkbox">
+                                    <input type="checkbox" class="form-check-input paper-check" data-index="${index}" checked>
+                                </div>
+                            `;
+                            papersList.appendChild(paperDiv);
+                        });
+
+                        // Add event listeners to checkboxes
+                        document.querySelectorAll('.paper-check').forEach(checkbox => {
+                            checkbox.addEventListener('change', updateSelectedPapers);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching papers:', error);
+                        this.disabled = false;
+                        this.textContent = 'Fetch Related Papers';
+                        papersList.innerHTML = '<div class="alert alert-danger">Error fetching papers. Please try again.</div>';
+                    });
+            });
+
+            // Select/Deselect all papers
+            document.getElementById('selectAllBtn').addEventListener('click', function() {
+                document.querySelectorAll('.paper-check').forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                updateSelectedPapers();
+            });
+
+            document.getElementById('deselectAllBtn').addEventListener('click', function() {
+                document.querySelectorAll('.paper-check').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                updateSelectedPapers();
+            });
+
+            // Update selected papers based on checkboxes
+            function updateSelectedPapers() {
+                const selectedIndices = [];
+                document.querySelectorAll('.paper-check:checked').forEach(checkbox => {
+                    selectedIndices.push(parseInt(checkbox.dataset.index));
+                });
+
+                selectedPapers = selectedPapers.filter((_, index) => selectedIndices.includes(index));
+            }
+
+            // Generate paper draft
+            document.getElementById('generateBtn').addEventListener('click', function() {
+                const topic = document.getElementById('researchTopic').value.trim();
+                const journalStyle = document.getElementById('journalStyle').value;
+                const provider = document.getElementById('aiProvider').value;
+                const model = document.getElementById('aiModel').value;
+
+                if (!topic) {
+                    alert('Please enter a research topic');
+                    return;
+                }
+
+                if (!selectedPapers || selectedPapers.length === 0) {
+                    alert('Please fetch and select some related papers');
+                    return;
+                }
+
+                // Navigate to step 3
+                document.getElementById('step3-tab').click();
+
+                // Show generating spinner
+                document.getElementById('generatingSpinner').classList.remove('d-none');
+                document.getElementById('draft-output').classList.add('d-none');
+                document.getElementById('sendToEditorBtn').disabled = true;
+                document.getElementById('downloadBtn').disabled = true;
+
+                // Send request to generate draft
+                fetch('/draft-generator/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        theme: topic,
+                        journal_style: journalStyle,
+                        provider: provider,
+                        model: model,
+                        papers: selectedPapers
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide spinner
+                    document.getElementById('generatingSpinner').classList.add('d-none');
+                    document.getElementById('draft-output').classList.remove('d-none');
+
+                    if (data.error) {
+                        document.getElementById('draft-output').textContent = `Error: ${data.error}`;
+                        return;
+                    }
+
+                    // Store and display generated draft
+                    generatedDraft = data.draft;
+                    document.getElementById('draft-output').textContent = generatedDraft;
+
+                    // Enable buttons
+                    document.getElementById('sendToEditorBtn').disabled = false;
+                    document.getElementById('downloadBtn').disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error generating draft:', error);
+                    document.getElementById('generatingSpinner').classList.add('d-none');
+                    document.getElementById('draft-output').classList.remove('d-none');
+                    document.getElementById('draft-output').textContent = `Error generating draft: ${error.message}`;
+                });
+            });
+
+            // Download draft as markdown
+            document.getElementById('downloadBtn').addEventListener('click', function() {
+                if (!generatedDraft) return;
+
+                const blob = new Blob([generatedDraft], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'academic_draft.md';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // Send draft to editor
+            document.getElementById('sendToEditorBtn').addEventListener('click', function() {
+                if (!generatedDraft) return;
+
+                // If we're in an iframe, send message to parent window
+                if (window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'draftContent',
+                        content: generatedDraft
+                    }, '*');
+
+                    // Show success message
+                    alert('Draft sent to editor successfully!');
+                } else {
+                    // If we're not in an iframe, store in localStorage
+                    localStorage.setItem('generatedDraft', generatedDraft);
+
+                    // Show success message and redirect
+                    alert('Draft saved. Returning to editor...');
+                    window.location.href = '/editor/dashboard';
+                }
+            });
+
+            // Initialize
+            fetchProviders();
+        });
+    </script>
+</body>
+</html>

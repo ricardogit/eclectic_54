@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dash Editor{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <!-- Page-specific CSS -->
+    {% block styles %}{% endblock %}
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand"
+           href="{% if current_user.is_authenticated %}{{ url_for('editor.dashboard') }}{% else %}{{ url_for('auth.login') }}{% endif %}">
+            <img src="{{ url_for('static', filename='images/eclectic.jpeg') }}" height="100"
+                 class="d-inline-block align-top mr-2">
+            Dash Editor
+        </a>
+        <!-- Add this CSS to your existing styles section or CSS file -->
+        <style>
+            .navbar-brand img {
+                height: 30px;
+                margin-right: 8px;
+                border-radius: 4px;
+                filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+            }
+
+            @media (max-width: 576px) {
+                .navbar-brand img {
+                    height: 24px;
+                }
+            }
+        </style>
+
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item {% if request.endpoint == 'editor.dashboard' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('editor.dashboard') }}">Dashboard</a>
+                </li>
+                <li class="nav-item {% if request.endpoint == 'editor.new_document' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('editor.new_document') }}">New Document</a>
+                </li>
+                <!-- Add this new Literature Search nav item -->
+                <li class="nav-item {% if request.endpoint == 'literature.search' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('literature.search') }}">Literature Search</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint.startswith('settings.') %}active{% endif %}"
+                       href="{{ url_for('settings.settings_page') }}">
+                        <i class="fa fa-cog"></i> Settings
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+
+            <ul class="navbar-nav ml-auto">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                       data-toggle="dropdown">
+                        <i class="fa fa-user-circle-o"></i> {{ current_user.full_name }}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="{{ url_for('auth.profile') }}">
+                            <i class="fa fa-user"></i> Profile
+                        </a>
+
+                        <!-- Settings Link - Make sure this is included -->
+                        <a class="dropdown-item" href="{{ url_for('settings.settings_page') }}">
+                            <i class="fa fa-cog"></i> Settings
+                        </a>
+
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                            <i class="fa fa-sign-out"></i> Logout
+                        </a>
+                    </div>
+                </li>
+                {% else %}
+                <li class="nav-item {% if request.endpoint == 'auth.login' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+                </li>
+                <li class="nav-item {% if request.endpoint == 'auth.register' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash messages -->
+<div class="container mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+</div>
+
+<!-- Main content -->
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="footer mt-auto py-3 bg-light">
+    <div class="container text-center">
+        <span class="text-muted">© 2025 Dash Editor. All Rights Reserved.</span>
+    </div>
+</footer>
+
+<!-- jQuery and Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Common JS -->
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+<script src="{{ url_for('static', filename='js/editor-fixes.js') }}"></script>
+<!-- Page-specific scripts -->
+{% block scripts %}{% endblock %}
+<script>
+    /**
+ * Critical fixes for editor loading and modal positioning
+ * This must be added at the end of your HTML after all other scripts
+ */
+
+(function() {
+    console.log('Applying critical fixes...');
+
+    // Apply fixes immediately and again when DOM is loaded
+    applyFixes();
+    document.addEventListener('DOMContentLoaded', applyFixes);
+    // Also apply when window loads as a fallback
+    window.addEventListener('load', applyFixes);
+
+    // Set up a timer to reapply fixes after a delay
+    setTimeout(applyFixes, 1000);
+
+    /**
+     * Apply all fixes at once
+     */
+    function applyFixes() {
+        fixEditButtonLoading();
+        fixCollaboratorModal();
+    }
+
+    /**
+     * Fix 1: Edit Button Getting Stuck on Loading
+     */
+    function fixEditButtonLoading() {
+        console.log('Fixing Edit button loading issue...');
+
+        // Fix both dashboard and section Edit buttons
+        fixDashboardEditButtons();
+        fixSectionEditButton();
+    }
+
+    /**
+     * Fix dashboard Edit buttons
+     */
+    function fixDashboardEditButtons() {
+        const editButtons = document.querySelectorAll('.dashboard-document-actions .edit-document-btn, .dashboard .edit-btn');
+
+        editButtons.forEach(button => {
+            // Skip if already fixed
+            if (button.dataset.fixed === 'true') return;
+
+            // Mark as fixed
+            button.dataset.fixed = 'true';
+
+            // Remove existing event handlers
+            const newButton = button.cloneNode(true);
+            if (button.parentNode) {
+                button.parentNode.replaceChild(newButton, button);
+            }
+
+            // Add direct navigation handler
+            newButton.addEventListener('click', function(e) {
+                const documentId = this.dataset.documentId ||
+                                  (this.getAttribute('href') ? this.getAttribute('href').split('/').pop() : null);
+
+                if (!documentId) return; // Let default action handle it
+
+                e.preventDefault();
+
+                // Show loading UI
+                this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading...';
+                this.disabled = true;
+
+                // Navigate directly to the document
+                window.location.href = `/editor/${documentId}`;
+            });
+        });
+    }
+
+    /**
+     * Fix section Edit button
+     */
+    function fixSectionEditButton() {
+        const editButton = document.getElementById('edit-section');
+
+        if (!editButton || editButton.dataset.fixed === 'true') return;
+
+        // Mark as fixed
+        editButton.dataset.fixed = 'true';
+
+        // Override editButton click handler
+        editButton.addEventListener('click', function(event) {
+            // Stop event propagation and default behavior
+            event.preventDefault();
+            event.stopPropagation();
+
+            // Call our fixed implementation
+            fixedStartEditing();
+
+            return false;
+        }, true);
+
+        // Directly override the startEditing function globally
+        if (window.startEditing) {
+            window.originalStartEditing = window.startEditing;
+            window.startEditing = fixedStartEditing;
+        }
+
+        // Directly override enableEditing if it exists
+        if (window.enableEditing) {
+            window.originalEnableEditing = window.enableEditing;
+            window.enableEditing = fixedEnableEditing;
+        }
+    }
+
+    /**
+     * Fixed implementation of startEditing that doesn't wait for lock acquisition
+     */
+    function fixedStartEditing() {
+        console.log('Using fixed startEditing implementation');
+
+        if (!window.currentSection) {
+            if (typeof showNotification === 'function') {
+                showNotification('Please select a section to edit', 'warning');
+            } else {
+                alert('Please select a section to edit');
+            }
+            return;
+        }
+
+        // Skip lock acquisition and directly enable editing
+        fixedEnableEditing();
+    }
+
+    /**
+     * Fixed implementation of enableEditing
+     */
+    function fixedEnableEditing() {
+        console.log('Using fixed enableEditing implementation');
+
+        try {
+            // Save original content
+            if (window.editor) {
+                window.originalContent = window.editor.getValue();
+            }
+
+            // Set editing flag
+            window.isEditing = true;
+
+            // Make editor editable
+            if (window.editor) {
+                window.editor.setOption('readOnly', false);
+            }
+
+            // Enable title editing
+            const titleElement = document.getElementById('section-title');
+            if (titleElement) {
+                titleElement.readOnly = false;
+            }
+
+            // Update UI buttons
+            const editSectionBtn = document.getElementById('edit-section');
+            if (editSectionBtn) {
+                editSectionBtn.disabled = true;
+            }
+
+            const saveSectionBtn = document.getElementById('save-section');
+            if (saveSectionBtn) {
+                saveSectionBtn.disabled = true;
+            }
+
+            const cancelEditBtn = document.getElementById('cancel-edit');
+            if (cancelEditBtn) {
+                cancelEditBtn.disabled = false;
+            }
+
+            // Enable toolbar buttons
+            const toolbarButtons = document.querySelectorAll('#editor-toolbar button');
+            toolbarButtons.forEach(button => button.disabled = false);
+
+            // Update edit status if the function exists
+            if (typeof updateEditStatus === 'function') {
+                updateEditStatus(true);
+            }
+
+            // Focus editor
+            if (window.editor) {
+                window.editor.focus();
+            }
+
+            console.log('Editor successfully enabled for editing');
+        } catch (error) {
+            console.error('Error enabling editing:', error);
+            // Reset UI state in case of error
+            if (window.editor) {
+                window.editor.setOption('readOnly', true);
+            }
+            const editButton = document.getElementById('edit-section');
+            if (editButton) {
+                editButton.disabled = false;
+                editButton.innerHTML = 'Edit';
+            }
+        }
+    }
+
+    /**
+     * Fix 2: Collaborator Modal Position
+     */
+    function fixCollaboratorModal() {
+        console.log('Fixing Collaborator Modal...');
+
+        // Check if modal already exists
+        let modal = document.getElementById('collaborators-modal');
+
+        // If modal exists but is in the wrong place, move it
+        if (modal) {
+            // Check if modal is inside the editor area
+            const editorArea = document.querySelector('.editor-container, .document-editor');
+            if (editorArea && editorArea.contains(modal)) {
+                // Move modal to body
+                document.body.appendChild(modal);
+                console.log('Moved modal from editor area to body');
+            }
+
+            // Apply fixed styling to ensure proper position
+            applyModalStyling();
+        } else {
+            // Modal doesn't exist, check if we need to replace it with our version
+            ensureModalExists();
+        }
+
+        // Prevent auto-show by clearing any setTimeout that might show the modal
+        for (let i = 1; i < 10000; i++) {
+            clearTimeout(i);
+        }
+
+        // Override the show modal function
+        overrideShowModal();
+    }
+
+    /**
+     * Ensure the collaborator modal exists
+     */
+    function ensureModalExists() {
+        // Only create if it doesn't exist
+        if (document.getElementById('collaborators-modal')) return;
+
+        console.log('Creating collaborator modal');
+
+        const modalHTML = `
+        <div class="modal fade" id="collaborators-modal" tabindex="-1" role="dialog" aria-labelledby="collaborators-modal-label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="collaborators-modal-label">Manage Collaborators</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="collaborator-email">Add Collaborator</label>
+                            <div class="input-group">
+                                <input type="email" class="form-control" id="collaborator-email" placeholder="Enter email">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" id="search-collaborator">Search</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="user-search-results" class="mb-3" style="display: none;">
+                            <!-- Results will be populated here -->
+                        </div>
+                        <div class="form-group">
+                            <label for="permission-level">Permission Level</label>
+                            <select class="form-control" id="permission-level">
+                                <option value="view">View Only</option>
+                                <option value="comment">Comment</option>
+                                <option value="edit">Edit</option>
+                            </select>
+                        </div>
+                        <button id="add-collaborator-btn" class="btn btn-success mb-3" disabled>Add Collaborator</button>
+                        <hr>
+                        <h6>Current Collaborators</h6>
+                        <div id="current-collaborators-list">
+                            <!-- Populated via JavaScript -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+
+        // Add modal directly to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Apply styling after creating
+        applyModalStyling();
+    }
+
+    /**
+     * Apply fixed modal styling
+     */
+    function applyModalStyling() {
+        const styleId = 'fixed-modal-styles';
+
+        // Check if we already added our styles
+        if (document.getElementById(styleId)) return;
+
+        // Create style element
+        const styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        styleEl.textContent = `
+            /* Fixed modal positioning */
+            #collaborators-modal {
+                position: fixed !important;
+                top: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                z-index: 10000 !important;
+                display: none;
+                overflow: hidden;
+                outline: 0;
+            }
+
+            #collaborators-modal .modal-dialog {
+                position: absolute !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                width: 500px;
+                max-width: 90%;
+                margin: 0 !important;
+            }
+
+            .modal-backdrop {
+                position: fixed !important;
+                top: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                z-index: 9999 !important;
+                background-color: #000 !important;
+            }
+
+            .modal-backdrop.show {
+                opacity: 0.5 !important;
+            }
+
+            .user-result-item {
+                padding: 8px;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                margin-bottom: 5px;
+                cursor: pointer;
+            }
+
+            .user-result-item:hover {
+                background-color: #f8f9fa;
+            }
+
+            .user-result-item.selected {
+                background-color: #e9ecef;
+                border-color: #007bff;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            }
+
+            .collaborator-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                margin-bottom: 5px;
+            }
+        `;
+
+        // Add style to head
+        document.head.appendChild(styleEl);
+    }
+
+    /**
+     * Override the showCollaboratorsModal function
+     */
+    function overrideShowModal() {
+        // Save reference to original function if it exists
+        if (window.showCollaboratorsModal && !window.originalShowModal) {
+            window.originalShowModal = window.showCollaboratorsModal;
+        }
+
+        // Override with fixed implementation
+        window.showCollaboratorsModal = function() {
+            console.log('Using fixed modal show implementation');
+
+            // Ensure modal exists
+            ensureModalExists();
+
+            // Reset modal state
+            const emailInput = document.getElementById('collaborator-email');
+            const resultsContainer = document.getElementById('user-search-results');
+            const addButton = document.getElementById('add-collaborator-btn');
+
+            if (emailInput) emailInput.value = '';
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '';
+                resultsContainer.style.display = 'none';
+            }
+            if (addButton) addButton.disabled = true;
+
+            // Load collaborators if function exists
+            if (typeof loadCollaborators === 'function') {
+                loadCollaborators();
+            }
+
+            // Use jQuery to show the modal if available
+            if (typeof $ !== 'undefined') {
+                $('#collaborators-modal').modal({
+                    backdrop: 'static',
+                    keyboard: false,
+                    show: true
+                });
+            } else {
+                // Fallback to direct DOM manipulation
+                const modal = document.getElementById('collaborators-modal');
+                if (modal) {
+                    // Create backdrop
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop show';
+                    document.body.appendChild(backdrop);
+
+                    // Show modal
+                    modal.style.display = 'block';
+                    modal.classList.add('show');
+
+                    // Add close handler to buttons
+                    const closeButtons = modal.querySelectorAll('[data-dismiss="modal"]');
+                    closeButtons.forEach(button => {
+                        button.onclick = function() {
+                            modal.style.display = 'none';
+                            modal.classList.remove('show');
+                            document.body.removeChild(backdrop);
+                        };
+                    });
+                }
+            }
+        };
+
+        // Also fix the "Manage Collaborators" link in dropdown
+        const manageCollabLink = document.getElementById('manage-collaborators');
+        if (manageCollabLink) {
+            manageCollabLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.showCollaboratorsModal();
+            });
+        }
+
+        // Fix "Add Collaborator" button
+        const addCollabBtn = document.getElementById('add-collaborator');
+        if (addCollabBtn) {
+            addCollabBtn.addEventListener('click', function() {
+                window.showCollaboratorsModal();
+            });
+        }
+    }
+})();
+</script>
+<script src="{{ url_for('static', filename='js/emergency-fix.js') }}"></script>
+<!-- jQuery and Bootstrap JS at the end of base.html -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

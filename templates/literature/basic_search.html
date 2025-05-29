@@ -1,0 +1,671 @@
+{% extends "base.html" %}
+
+{% block title %}Literature Search{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* Fix modal display issues */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 800px;
+      max-height: 80vh;
+      overflow: auto;
+      position: relative;
+      z-index: 2001;
+    }
+
+    .close-btn {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .close-btn:hover,
+    .close-btn:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /* Button styles */
+    .action-btn {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 14px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .secondary-btn {
+      background-color: #555555;
+    }
+    
+    /* Notification styles */
+    .notification {
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+    }
+    
+    .notification-error {
+      color: #721c24;
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+    
+    .notification-success {
+      color: #155724;
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+    
+    .notification-info {
+      color: #0c5460;
+      background-color: #d1ecf1;
+      border-color: #bee5eb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">Scientific Literature Search</h1>
+    
+    <!-- Notification area -->
+    <div id="notification-area" style="display: none;"></div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Search form -->
+            <!-- Search form with additional filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form action="{{ url_for('literature.basic_search') }}" method="get">
+                        <div class="form-group">
+                            <label for="query">Search Query</label>
+                            <input type="text" class="form-control" id="query" name="query"
+                                   value="{{ query }}" placeholder="Enter search terms...">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="source">Source</label>
+                                    <select class="form-control" id="source" name="source">
+                                        <option value="all" {% if source==
+                                        'all' %}selected{% endif %}>All Sources</option>
+                                        <option value="arxiv" {% if source==
+                                        'arxiv' %}selected{% endif %}>arXiv</option>
+                                        <option value="pubmed" {% if source==
+                                        'pubmed' %}selected{% endif %}>PubMed</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="year_from">Year From</label>
+                                    <input type="number" class="form-control" id="year_from" name="year_from"
+                                           value="{{ year_from }}" placeholder="e.g., 2020">
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="year_to">Year To</label>
+                                    <input type="number" class="form-control" id="year_to" name="year_to"
+                                           value="{{ year_to }}" placeholder="e.g., 2025">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </form>
+                </div>
+            </div>
+            <!-- Recent searches -->
+            <div class="card mb-4">
+                <div class="card-header">Recent Searches</div>
+                <div class="card-body">
+                    {% if recent_searches %}
+                    <ul class="list-unstyled">
+                        {% for search in recent_searches %}
+                        <li class="mb-2">
+                            <a href="{{ url_for('literature.basic_search', query=search.query) }}">
+                                {{ search.query }}
+                            </a>
+                            <small class="text-muted">({{ search.source_db }}, {{ search.results_count }}
+                                results)</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p>No recent searches.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Search results -->
+            <div class="card">
+                <div class="card-header">Search Results</div>
+                <div class="card-body">
+                    {% if results %}
+                    <h4>Found {{ results|length }} results</h4>
+                    {% for paper in results %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>{{ paper.title }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Authors: {{ paper.authors }}</p>
+                            <p>Source: {{ paper.journal }}, {{ paper.year }}</p>
+                            <p>{{ paper.abstract[:200] }}{% if paper.abstract|length > 200 %}...{% endif %}</p>
+
+                            <!-- Include debugging info in data attributes but make them invisible -->
+                            <span style="display:none;"
+                                  data-has-title="{{ paper.title and paper.title|trim != '' }}"
+                                  data-has-authors="{{ paper.authors and paper.authors|trim != '' }}"
+                                  data-has-abstract="{{ paper.abstract and paper.abstract|trim != '' }}">
+                            </span>
+
+                            <button class="btn btn-primary btn-sm view-paper-btn"
+                                    onclick="showPaperDetails(
+                                                '{{ paper.title|default('')|replace("'", "\\'") }}',
+                                                '{{ paper.authors|default('')|replace("'", "\\'") }}',
+                                                '{{ paper.abstract|default('')|replace("'", "\\'") }}',
+                                                '{{ paper.journal|default('')|replace("'", "\\'") }}',
+                                                '{{ paper.year|default('') }}',
+                                                '{{ paper.url|default('') }}',
+                                                '{{ paper.doi|default('') }}',
+                                                '{{ paper.paper_id|default('') }}',
+                                                '{{ paper.source_db|default('') }}'
+                                            )">
+                            View Details
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% elif query %}
+                    <p>No results found for your query.</p>
+                    {% else %}
+                    <p>Enter a search query to see results.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Collections -->
+            <!-- Collections with additional features -->
+            <div class="card mb-4">
+                <div class="card-header">My Collections</div>
+                <div class="card-body">
+                    {% if collections %}
+                    <ul class="list-group">
+                        {% for collection in collections %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="javascript:void(0)"
+                               onclick="viewCollection({{ collection.id }}, '{{ collection.name|replace("'", "\\'")
+                            }}')">
+                            {{ collection.name }}
+                            </a>
+                            <span class="badge badge-primary badge-pill" title="Number of papers">
+                            {{ collection.paper_count|default(0) }}
+                        </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p>No collections yet.</p>
+                    {% endif %}
+
+                    <hr>
+                    <h5>Create New Collection</h5>
+                    <form action="{{ url_for('literature.submit_collection_form') }}" method="post">
+                        <div class="form-group">
+                            <input type="text" class="form-control mb-2" name="name" placeholder="Collection name..."
+                                   required>
+                            <textarea class="form-control mb-2" name="description"
+                                      placeholder="Description..."></textarea>
+                            <button type="submit" class="btn btn-primary btn-sm">Create Collection</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Collection Papers Modal -->
+            <div id="collectionPapersModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-btn" onclick="closeCollectionModal()">&times;</span>
+                    <h2 id="collection-modal-title"></h2>
+                    <div id="collection-papers-content"></div>
+                    <div style="margin-top: 20px;">
+                        <button class="action-btn secondary-btn" onclick="closeCollectionModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Paper Details Modal - FIXED STRUCTURE -->
+    <div id="paperDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closePaperModal()">&times;</span>
+            <h2 id="modal-title"></h2>
+            <div id="paper-details-content"></div>
+
+            <!-- Add to Collection Section - Now inside modal content -->
+            <div id="add-to-collection-section" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                <h4>Add to Collection</h4>
+                <div class="form-group">
+                    <select id="collection-dropdown" class="form-control">
+                        <option value="">Select a collection...</option>
+                        {% for collection in collections %}
+                            <option value="{{ collection.id }}">{{ collection.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button class="action-btn" onclick="addToCollection()">Add to Collection</button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="action-btn" id="copy-details-btn" onclick="copyPaperDetails()">Copy Details</button>
+                <button class="action-btn" id="export-bibtex-btn" onclick="exportBibtex()">Export BibTeX</button>
+                <button class="action-btn secondary-btn" onclick="closePaperModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Paper details object to hold current paper data
+    let currentPaper = {};
+
+    // Get the modal element
+    const modal = document.getElementById("paperDetailsModal");
+
+    // Simple alert function that will definitely work
+    function showNotification(message, type = 'info') {
+        // Use a simple alert for immediate feedback
+        alert(message);
+
+        // Also try the notification area as a backup
+        try {
+            const notificationArea = document.getElementById('notification-area');
+            if (notificationArea) {
+                // Clear existing notifications
+                notificationArea.innerHTML = '';
+
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.innerHTML = message;
+
+                // Add close button
+                const closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'close';
+                closeBtn.innerHTML = '&times;';
+                closeBtn.style.float = 'right';
+                closeBtn.onclick = function() {
+                    notificationArea.style.display = 'none';
+                };
+
+                notification.appendChild(closeBtn);
+
+                // Add to notification area
+                notificationArea.appendChild(notification);
+                notificationArea.style.display = 'block';
+
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    if (notificationArea.contains(notification)) {
+                        notificationArea.style.display = 'none';
+                    }
+                }, 5000);
+            }
+        } catch (e) {
+            console.error("Failed to show notification in the UI:", e);
+            // Alert already shown above, so no need for another fallback
+        }
+    }
+
+    // Function to show paper details
+    function showPaperDetails(title, authors, abstract, journal, year, url, doi, paperId, source) {
+        console.log("showPaperDetails called with:", { title, authors, abstract });
+
+        // Check if we have actual content (not empty strings, null, or undefined)
+        if (!title || title.trim() === "" ||
+            !authors || authors.trim() === "" ||
+            !abstract || abstract.trim() === "") {
+
+            console.log("Missing essential paper details");
+            alert("No details available for this item. Please try another paper.");
+            return; // Exit the function early - don't try to show the modal
+        }
+
+        console.log("Valid paper details found, showing modal");
+
+        // If we get here, we have sufficient data to show the modal
+        try {
+            // Store paper details
+            currentPaper = {
+                title: title,
+                authors: authors,
+                abstract: abstract,
+                journal: journal || "",
+                year: year || "",
+                url: url || "",
+                doi: doi || "",
+                paperId: paperId,
+                source: source
+            };
+
+            // Store paper details
+            currentPaper = {
+                title: title,
+                authors: authors,
+                abstract: abstract,
+                journal: journal || "",
+                year: year || "",
+                url: url || "",
+                doi: doi || "",
+                paperId: paperId,
+                source: source
+            };
+
+            // Set modal title
+            document.getElementById("modal-title").innerText = currentPaper.title;
+
+            // Build content HTML
+            let contentHtml = `
+                <div>
+                <h4>Authors</h4>
+                <p>${currentPaper.authors}</p>
+
+                <h4>Abstract</h4>
+                <p>${currentPaper.abstract}</p>
+
+                <h4>Source</h4>
+                <p>${currentPaper.journal}, ${currentPaper.year}</p>
+            `;
+
+            if (currentPaper.doi) {
+                contentHtml += `
+                <h4>DOI</h4>
+                <p>${currentPaper.doi}</p>
+                `;
+            }
+
+            if (currentPaper.url) {
+                contentHtml += `
+                <h4>URL</h4>
+                <p><a href="${currentPaper.url}" target="_blank">View Original</a></p>
+                `;
+            }
+
+            contentHtml += `</div>`;
+
+            // Set content
+            document.getElementById("paper-details-content").innerHTML = contentHtml;
+
+            // Configure add to collection section
+            const addToCollectionSection = document.getElementById("add-to-collection-section");
+            if (!paperId || !source) {
+                // Hide add to collection if we don't have the required data
+                addToCollectionSection.style.display = 'none';
+                document.getElementById("copy-details-btn").style.display = 'inline-block';
+                document.getElementById("export-bibtex-btn").style.display = 'inline-block';
+            } else {
+                addToCollectionSection.style.display = 'block';
+                document.getElementById("copy-details-btn").style.display = 'inline-block';
+                document.getElementById("export-bibtex-btn").style.display = 'inline-block';
+            }
+
+            // Show modal
+            modal.style.display = "block";
+            console.log("Showing modal for paper:", title);
+        } catch (error) {
+            console.error("Error showing paper details:", error);
+            showNotification('An error occurred while trying to display paper details: ' + error.message, 'error');
+        }
+    }
+
+    // Function to close modal
+    function closePaperModal() {
+        modal.style.display = "none";
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closePaperModal();
+        } else if (event.target == document.getElementById("collectionPapersModal")) {
+            closeCollectionModal();
+        }
+    }
+
+    // Function to view collection - to be implemented
+    function viewCollection(collectionId, collectionName) {
+        // Check if the collection name is available
+        if (!collectionName) {
+            showNotification('Collection information not available', 'error');
+            return;
+        }
+
+        const collectionModal = document.getElementById("collectionPapersModal");
+        document.getElementById("collection-modal-title").innerText = collectionName;
+
+        // Get papers in collection via API
+        fetch(`/literature/api/collections/${collectionId}/papers`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to retrieve collection papers');
+            }
+            return response.json();
+        })
+        .then(papers => {
+            const contentArea = document.getElementById('collection-papers-content');
+
+            if (papers.length === 0) {
+                contentArea.innerHTML = '<p>This collection is empty. Add papers to see them here.</p>';
+            } else {
+                // Create a list of papers
+                let html = '<ul class="list-group">';
+                papers.forEach(paper => {
+                    html += `
+                    <li class="list-group-item">
+                        <h5>${paper.title}</h5>
+                        <p>Authors: ${paper.authors || 'Unknown'}</p>
+                        <p>Source: ${paper.journal || 'Unknown'}, ${paper.year || 'Unknown'}</p>
+                    </li>
+                    `;
+                });
+                html += '</ul>';
+                contentArea.innerHTML = html;
+            }
+
+            // Show the modal
+            collectionModal.style.display = "block";
+        })
+        .catch(error => {
+            console.error('Error getting collection papers:', error);
+            showNotification('Error retrieving collection papers: ' + error.message, 'error');
+        });
+    }
+
+    // Function to close collection modal
+    function closeCollectionModal() {
+        const collectionModal = document.getElementById("collectionPapersModal");
+        if (collectionModal) {
+            collectionModal.style.display = "none";
+        }
+    }
+
+    // Copy paper details
+    function copyPaperDetails() {
+        // Validate that we have paper details to copy
+        if (!currentPaper.title) {
+            showNotification('No paper details available to copy', 'error');
+            return;
+        }
+
+        const detailsText = `
+Title: ${currentPaper.title}
+Authors: ${currentPaper.authors}
+Source: ${currentPaper.journal}, ${currentPaper.year}
+${currentPaper.doi ? "DOI: " + currentPaper.doi : ""}
+${currentPaper.url ? "URL: " + currentPaper.url : ""}
+
+Abstract:
+${currentPaper.abstract}
+        `.trim();
+
+        // Copy to clipboard
+        try {
+            navigator.clipboard.writeText(detailsText).then(function() {
+                showNotification("Paper details copied to clipboard", "success");
+            });
+        } catch (err) {
+            // Fallback for older browsers
+            const textarea = document.createElement("textarea");
+            textarea.value = detailsText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            showNotification("Paper details copied to clipboard", "success");
+        }
+    }
+
+    // Export BibTeX
+    function exportBibtex() {
+        // Validate that we have paper details to export
+        if (!currentPaper.title) {
+            showNotification('No paper details available to export', 'error');
+            return;
+        }
+
+        try {
+            // Generate a citation key
+            const authorParts = (currentPaper.authors || "Unknown").split(",");
+            const firstAuthor = authorParts[0] || "Unknown";
+            const lastName = firstAuthor.split(" ").pop().replace(/[^a-zA-Z0-9]/g, "");
+            const citekey = lastName + currentPaper.year;
+
+            // Format authors for BibTeX
+            const bibtexAuthors = authorParts
+                .map(author => author.trim())
+                .join(" and ");
+
+            // Create BibTeX entry
+            const bibtex = `@article{${citekey},
+    title = {${currentPaper.title}},
+    author = {${bibtexAuthors}},
+    journal = {${currentPaper.journal}},
+    year = {${currentPaper.year}},
+    doi = {${currentPaper.doi || ""}},
+    url = {${currentPaper.url || ""}},
+    abstract = {${(currentPaper.abstract || "").replace(/\n/g, " ")}},
+}`;
+
+            // Download as file
+            const blob = new Blob([bibtex], {type: "text/plain"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = citekey + ".bib";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showNotification("BibTeX citation exported successfully", "success");
+        } catch (error) {
+            console.error("Error exporting BibTeX:", error);
+            showNotification("Error exporting BibTeX: " + error.message, "error");
+        }
+    }
+
+    // Add paper to collection
+    function addToCollection() {
+        const collectionId = document.getElementById('collection-dropdown').value;
+
+        if (!collectionId) {
+            showNotification('Please select a collection', 'error');
+            return;
+        }
+
+        // Validate that we have the required paper data
+        if (!currentPaper.paperId || !currentPaper.source) {
+            showNotification('Missing required paper data to add to collection', 'error');
+            return;
+        }
+
+        // Create the request payload
+        const payload = {
+            paper_id: currentPaper.paperId,
+            source: currentPaper.source
+        };
+
+        // Send the request
+        fetch(`/literature/api/collections/${collectionId}/papers`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to add paper to collection');
+            }
+            return response.json();
+        })
+        .then(data => {
+            showNotification('Paper added to collection successfully', 'success');
+            // Refresh the page to update collection counts
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        })
+        .catch(error => {
+            console.error('Error adding paper to collection:', error);
+            showNotification('Error adding paper to collection: ' + error.message, 'error');
+        });
+    }
+
+    // Document ready handler
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Literature search page initialized");
+    });
+</script>
+{% endblock %}

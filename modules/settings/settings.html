@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Settings</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav flex-column nav-pills">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('settings.settings_page') }}">
+                                <i class="fa fa-user"></i> Profile
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('settings.settings_dashboard') }}">
+                                <i class="fa fa-sliders"></i> Advanced Settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('literature.search') }}">
+                                <i class="fa fa-search"></i> Literature Search
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.profile') }}">
+                                <i class="fa fa-arrow-left"></i> Back to Profile
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">User Settings</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i> For advanced settings including AI providers and scientific databases, please visit the <a href="{{ url_for('settings.settings_dashboard') }}" class="alert-link">Advanced Settings Dashboard</a>.
+                    </div>
+
+                    <h5 class="mb-3">Profile Settings</h5>
+                    <form id="profile-form" method="post" action="{{ url_for('settings.update_profile') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ current_user.full_name }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <h5 class="mb-3">Change Password</h5>
+                    <form id="password-form" method="post" action="{{ url_for('settings.change_password') }}">
+                        <div class="mb-3">
+                            <label for="current-password" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="current-password" name="current_password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="new-password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new-password" name="new_password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm-password" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirm-password" name="confirm_password">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Handle profile form submission
+    document.getElementById('profile-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value
+        };
+
+        fetch("{{ url_for('settings.update_profile') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    });
+
+    // Handle password form submission
+    document.getElementById('password-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+
+        if (newPassword !== confirmPassword) {
+            alert('New password and confirmation do not match.');
+            return;
+        }
+
+        const formData = {
+            current_password: document.getElementById('current-password').value,
+            new_password: newPassword
+        };
+
+        fetch("{{ url_for('settings.change_password') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                document.getElementById('password-form').reset();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}{{ paper.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>{{ paper.title }}</h3>
+                </div>
+                <div class="card-body">
+                    <h5>Authors</h5>
+                    <p>{{ paper.authors }}</p>
+
+                    <h5>Abstract</h5>
+                    <p>{{ paper.abstract }}</p>
+
+                    <h5>Source</h5>
+                    <p>{{ paper.journal }}, {{ paper.year }}</p>
+
+                    {% if paper.doi %}
+                    <h5>DOI</h5>
+                    <p>{{ paper.doi }}</p>
+                    {% endif %}
+
+                    {% if paper.url %}
+                    <h5>URL</h5>
+                    <p><a href="{{ paper.url }}" target="_blank">View Original</a></p>
+                    {% endif %}
+
+                    <div class="mt-4">
+                        <a href="{{ url_for('literature.basic_search') }}?query={{ request.args.get('query', '') }}" class="btn btn-secondary">Back to Search Results</a>
+                        <button class="btn btn-primary" id="copyDetailsBtn">Copy Details</button>
+                        <button class="btn btn-primary" id="exportBibtexBtn">Export as BibTeX</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Add to Collection</h4>
+                </div>
+                <div class="card-body">
+                    {% if collections %}
+                        <form action="{{ url_for('literature.submit_paper_to_collection') }}" method="post">
+                            <input type="hidden" name="paper_id" value="{{ paper.paper_id }}">
+                            <input type="hidden" name="source" value="{{ paper.source_db }}">
+
+                            <div class="form-group">
+                                <label for="collection_id">Choose a Collection</label>
+                                <select class="form-control" id="collection_id" name="collection_id">
+                                    {% for collection in collections %}
+                                        <option value="{{ collection.id }}">{{ collection.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-success">Add to Collection</button>
+                        </form>
+                    {% else %}
+                        <p>You don't have any collections yet.</p>
+                        <a href="{{ url_for('literature.search') }}" class="btn btn-primary">Create a Collection</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Copy details button
+        document.getElementById('copyDetailsBtn').addEventListener('click', function() {
+            var detailsText = `
+Title: {{ paper.title }}
+Authors: {{ paper.authors }}
+Source: {{ paper.journal }}, {{ paper.year }}
+{% if paper.doi %}DOI: {{ paper.doi }}{% endif %}
+{% if paper.url %}URL: {{ paper.url }}{% endif %}
+
+Abstract:
+{{ paper.abstract }}
+            `.trim();
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(detailsText)
+                .then(function() {
+                    alert('Paper details copied to clipboard');
+                })
+                .catch(function(err) {
+                    // Fallback
+                    var textarea = document.createElement('textarea');
+                    textarea.value = detailsText;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+
+                    alert('Paper details copied to clipboard');
+                });
+        });
+
+        // Export BibTeX citation
+        document.getElementById('exportBibtexBtn').addEventListener('click', function() {
+            // Generate a citekey
+            var firstAuthor = '{{ paper.authors }}'.split(',')[0] || 'Unknown';
+            var lastName = firstAuthor.split(' ').pop().replace(/[^a-zA-Z0-9]/g, '');
+            var citekey = lastName + {{ paper.year or '""' }};
+
+            // Format authors for BibTeX
+            var bibtexAuthors = '{{ paper.authors }}'.split(',').map(author => author.trim()).join(' and ');
+
+            var bibtex = `@article{${citekey},
+  title = {{{ paper.title }}},
+  author = {${bibtexAuthors}},
+  journal = {{{ paper.journal }}},
+  year = {{{ paper.year }}},
+  doi = {{{ paper.doi or '' }}},
+  url = {{{ paper.url or '' }}},
+  abstract = {{{ paper.abstract.replace('\n', ' ') }}},
+}`;
+
+            // Create a download
+            var blob = new Blob([bibtex], {type: 'text/plain'});
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = citekey + '.bib';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    });
+</script>
+{% endblock %}

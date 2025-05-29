@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - Dash Editor{% endblock %}
+
+{% block styles %}
+<style>
+    .profile-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        background-color: #fff;
+    }
+
+    .profile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .profile-title h1 {
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .profile-title p {
+        color: #777;
+        margin-bottom: 0;
+    }
+
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        background-color: #e9ecef;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2.5rem;
+        color: #495057;
+        margin-right: 20px;
+    }
+
+    .tab-content {
+        padding-top: 20px;
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .btn-save {
+        padding: 8px 30px;
+    }
+
+    .nav-tabs .nav-link {
+        color: #495057;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #007bff;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="profile-container">
+        <div class="profile-header">
+            <div class="d-flex align-items-center">
+                <div class="profile-avatar">
+                    {{ current_user.full_name[0] | upper }}
+                </div>
+                <div class="profile-title">
+                    <h1>{{ current_user.full_name }}</h1>
+                    <p>{{ current_user.email }}</p>
+                </div>
+            </div>
+            <a href="{{ url_for('editor.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <ul class="nav nav-tabs" id="profileTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="profile-tab" data-toggle="tab" href="#profile" role="tab">Profile Information</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="password-tab" data-toggle="tab" href="#password" role="tab">Change Password</a>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="profileTabsContent">
+            <!-- Profile Information Tab -->
+            <div class="tab-pane fade show active" id="profile" role="tabpanel">
+                <form method="POST" action="{{ url_for('auth.profile') }}">
+                    <div class="form-group">
+                        <label for="full_name">Full Name</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" value="{{ current_user.full_name }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" class="form-control" id="email" value="{{ current_user.email }}" readonly>
+                        <small class="form-text text-muted">Email address cannot be changed</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="joined">Joined Date</label>
+                        <input type="text" class="form-control" id="joined" value="{{ current_user.created_date.strftime('%B %d, %Y') }}" readonly>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-save">Save Changes</button>
+                </form>
+            </div>
+
+            <!-- Change Password Tab -->
+            <div class="tab-pane fade" id="password" role="tabpanel">
+                <form method="POST" action="{{ url_for('auth.profile') }}">
+                    <div class="form-group">
+                        <label for="current_password">Current Password</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_password">New Password</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        <small class="form-text text-muted">Password should be at least 8 characters long</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-save">Update Password</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

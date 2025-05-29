@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Literature Search{% endblock %}
+
+{% block styles %}
+<!-- Get Dash dependencies directly -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">Scientific Literature Search</h1>
+
+    <!-- Direct link to Dash app -->
+    <p>If the application doesn't load automatically, <a href="{{ dash_url }}">click here</a> to open the Literature Search tool.</p>
+
+    <!-- Simple iframe approach without JavaScript redirect -->
+    <iframe
+        src="{{ dash_url }}"
+        frameborder="0"
+        style="width: 100%; height: 800px; border: none; overflow: hidden;"
+        title="Literature Search"
+        id="literature-iframe"
+    ></iframe>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Simple iframe error handling
+    document.getElementById('literature-iframe').onload = function() {
+        console.log("iframe loaded successfully");
+    };
+
+    document.getElementById('literature-iframe').onerror = function() {
+        console.error("iframe failed to load");
+        // Show error message
+        var errorMsg = document.createElement('div');
+        errorMsg.className = 'alert alert-danger mt-3';
+        errorMsg.innerHTML = 'Failed to load the Literature Search tool. <a href="{{ dash_url }}" target="_blank">Try opening it directly</a>.';
+        document.getElementById('literature-iframe').parentNode.appendChild(errorMsg);
+    };
+</script>
+<!-- Paper details modal -->
+<div class="modal fade" id="paperDetailsModal" tabindex="-1" role="dialog" aria-labelledby="paperDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="paperDetailsModalLabel">Paper Details</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="paperDetailsModalBody">
+        <!-- Content will be loaded here -->
+        <div class="text-center">
+          <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
